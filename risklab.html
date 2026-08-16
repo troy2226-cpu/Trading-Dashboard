@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Risk Lab — Trading Dashboard</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg-primary:#ffffff;--bg-secondary:#f5f5f4;--bg-tertiary:#efefed;
+  --text-primary:#1a1a18;--text-secondary:#6b6b67;--text-hint:#9f9f9b;
+  --border:rgba(0,0,0,0.12);--border-md:rgba(0,0,0,0.2);
+  --radius:8px;--radius-lg:12px;
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-mid:#639922;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --blue:#185FA5;--blue-mid:#378ADD;--blue-bg:#E6F1FB;
+  --accent:#378ADD;--muted:#9f9f9b;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg-primary:#1e1e1c;--bg-secondary:#2a2a28;--bg-tertiary:#333331;
+  --text-primary:#f0efe8;--text-secondary:#9f9f9b;--text-hint:#6b6b67;
+  --border:rgba(255,255,255,0.12);--border-md:rgba(255,255,255,0.22);
+  --green:#97C459;--green-bg:#1a2e08;--green-mid:#97C459;
+  --red:#F09595;--red-bg:#2e0f0f;
+  --blue:#85B7EB;--blue-mid:#378ADD;--blue-bg:#042C53;
+  --accent:#378ADD;--muted:#6b6b67;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg-tertiary);color:var(--text-primary);min-height:100vh;font-size:14px}
+header{background:var(--bg-primary);border-bottom:0.5px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+header h1{font-size:16px;font-weight:600}
+.back-btn{padding:6px 14px;border:0.5px solid var(--border-md);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.back-btn:hover{background:var(--bg-tertiary)}
+.container{max-width:960px;margin:0 auto;padding:24px 16px}
+
+/* Risk Lab styles mapped to dashboard theme */
+.app{width:100%}
+.header{margin-bottom:16px}
+.header h1{font-size:1.4rem;font-weight:700;color:var(--text-primary);margin-bottom:6px}
+.subtitle{color:var(--text-secondary);font-size:13px;line-height:1.45}
+.card{background:var(--bg-primary);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;margin-bottom:14px}
+.section-title{font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px}
+.grid{display:grid;gap:12px}
+.grid.inputs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+label{display:block}
+label span{display:block;margin-bottom:6px;color:var(--text-secondary);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+input[type=number],input[type=text]{width:100%;border:0.5px solid var(--border-md);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary);padding:8px 10px;outline:none;font-size:13px;transition:border 0.15s}
+input:focus{border-color:var(--blue-mid)}
+.btn-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+button{border:0.5px solid var(--border-md);border-radius:var(--radius);padding:10px 14px;color:var(--text-primary);background:var(--bg-secondary);font-weight:600;cursor:pointer;min-height:40px;font-size:13px;transition:all 0.15s;width:100%}
+button:hover{background:var(--bg-tertiary)}
+button:active{transform:translateY(1px)}
+.primary{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid)}
+.primary:hover{background:var(--blue)}
+.win{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.loss{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.danger{color:var(--red);border-color:var(--border);background:var(--bg-secondary)}
+.metric{border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:13px;background:var(--bg-secondary)}
+.metric .label{color:var(--text-secondary);font-size:11px;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500}
+.metric .value{font-size:18px;font-weight:700;color:var(--text-primary);word-break:break-word}
+.hero{border:0.5px solid var(--blue-mid);background:var(--blue-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:14px}
+.hero .eyebrow{color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:0.06em}
+.hero .amount{font-size:2rem;font-weight:900;color:var(--text-primary);margin:4px 0 8px}
+.hero p{margin:0;color:var(--text-secondary);line-height:1.45;font-size:13px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.tabs button{padding:8px;min-height:36px;font-size:12px;border:0.5px solid var(--border-md);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-secondary);font-weight:500;width:100%}
+.tabs button.active{background:var(--blue-mid);color:#fff;border-color:var(--blue-mid)}
+.chart-wrap{width:100%;overflow:hidden}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.legend{display:flex;flex-wrap:wrap;gap:12px;color:var(--text-secondary);font-size:12px;margin-top:8px}
+.table-wrap{overflow-x:auto;border:0.5px solid var(--border);border-radius:var(--radius-lg)}
+table{width:100%;border-collapse:collapse;min-width:600px;font-size:12px}
+th,td{padding:9px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap}
+th{text-align:left;color:var(--text-secondary);background:var(--bg-secondary);position:sticky;top:0;font-size:11px;text-transform:uppercase;letter-spacing:0.04em}
+td.num,th.num{text-align:right}
+.positive{color:var(--green);font-weight:600}
+.negative{color:var(--red);font-weight:600}
+.status{min-height:20px;margin-top:10px;color:var(--text-secondary);font-size:12px}
+.hidden{display:none}
+.footer-note{color:var(--text-secondary);font-size:12px;line-height:1.45;margin:16px 2px 0}
+.small{font-size:12px;color:var(--text-secondary);line-height:1.4}
+.desktop-two{display:block}
+@media(min-width:720px){
+  .grid.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .desktop-two{display:grid;grid-template-columns:1.1fr .9fr;gap:14px;align-items:start}
+}
+@media(max-width:480px){
+  .grid.inputs{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Risk Lab</h1>
+  <a href="index.html" class="back-btn">← Back to dashboard</a>
+</header>
+<div class="container">
+  <main class="app">
+<main class="app">
+    <header class="header">
+      <h1>Maximum Play Risk Lab</h1>
+      <p class="subtitle">Track actual wins and losses, then project the remaining trades using your win rate, reward-to-risk ratio, and risk settings.</p>
+    </header>
+
+    <section class="card">
+      <h2 class="section-title">Plan assumptions</h2>
+      <div class="grid inputs">
+        <label><span>Starting account ($)</span><input id="startingBalance" type="number" min="1" step="100" value="10000"></label>
+        <label><span>Account risk per trade (%)</span><input id="accountRisk" type="number" min="0.1" max="100" step="0.1" value="2"></label>
+        <label><span>Trade stop loss (%)</span><input id="stopLoss" type="number" min="0.1" max="100" step="0.1" value="20"></label>
+        <label><span>Assumed win rate (%)</span><input id="assumedWinRate" type="number" min="0" max="100" step="0.1" value="57"></label>
+        <label><span>Reward-to-risk ratio</span><input id="rewardRisk" type="number" min="0.1" max="20" step="0.1" value="2"></label>
+        <label><span>Total planned trades</span><input id="plannedTrades" type="number" min="1" max="5000" step="1" value="100"></label>
+      </div>
+      <div class="btn-row">
+        <button id="applySettings" class="primary" type="button">Apply assumptions</button>
+        <button id="resetTrades" class="danger" type="button">Reset all trades</button>
+      </div>
+      <div id="status" class="status" aria-live="polite"></div>
+    </section>
+
+    <div class="desktop-two">
+      <div>
+        <section class="hero">
+          <div class="eyebrow">Next maximum play</div>
+          <div id="maximumPlayHero" class="amount">$0</div>
+          <p>A stop of <strong id="heroStop">20%</strong> would lose about <strong id="heroRisk">$0</strong>, matching your selected account-risk percentage.</p>
+        </section>
+
+        <section class="card">
+          <h2 class="section-title">Record actual trade</h2>
+          <div style="margin-bottom:10px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Optional — enter actual amounts</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <label><span>Bought for $</span><input type="number" id="override-bought" placeholder="Leave blank for auto" step="0.01" min="0"></label>
+              <label><span>Sold for $</span><input type="number" id="override-sold" placeholder="Leave blank for auto" step="0.01" min="0"></label>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button id="winButton" class="win" type="button">Record win</button>
+            <button id="lossButton" class="loss" type="button">Record loss</button>
+          </div>
+          <button id="undoButton" type="button" style="width:100%;margin-top:10px;">Undo last trade</button>
+        </section>
+      </div>
+
+      <section class="card">
+        <h2 class="section-title">Current plan</h2>
+        <div class="grid metrics">
+          <div class="metric"><div class="label">Current account</div><div id="currentBalance" class="value">$0</div></div>
+          <div class="metric"><div class="label">Maximum loss</div><div id="dollarRisk" class="value">$0</div></div>
+          <div class="metric"><div class="label">Profit on a win</div><div id="winProfit" class="value">$0</div></div>
+          <div class="metric"><div class="label">Expected return/trade</div><div id="expectancyPct" class="value">0%</div></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2 class="section-title">Progress and future projection</h2>
+      <div class="grid metrics">
+        <div class="metric"><div class="label">Actual trades</div><div id="actualTrades" class="value">0</div></div>
+        <div class="metric"><div class="label">Trades remaining</div><div id="remainingTrades" class="value">0</div></div>
+        <div class="metric"><div class="label">Actual win rate</div><div id="actualWinRate" class="value">0%</div></div>
+        <div class="metric"><div class="label">Current net P/L</div><div id="currentNet" class="value">$0</div></div>
+        <div class="metric"><div class="label">Projected final account</div><div id="projectedFinal" class="value">$0</div></div>
+        <div class="metric"><div class="label">Projected total profit</div><div id="projectedProfit" class="value">$0</div></div>
+        <div class="metric"><div class="label">Projected return</div><div id="projectedReturn" class="value">0%</div></div>
+        <div class="metric"><div class="label">Breakeven win rate</div><div id="breakevenWin" class="value">0%</div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="tabs">
+        <button class="active" data-tab="chart" type="button">Chart</button>
+        <button data-tab="trades" type="button">Trade log</button>
+        <button data-tab="backup" type="button">Backup</button>
+      </div>
+
+      <div id="tab-chart">
+        <div class="chart-wrap"><svg id="equityChart" viewBox="0 0 720 330" role="img" aria-label="Actual and projected account equity"></svg></div>
+        <div class="legend"><span>Actual</span><span class="projected">Projected</span></div>
+      </div>
+
+      <div id="tab-trades" class="hidden">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Type</th><th class="num">Balance before</th><th class="num">Total play</th><th class="num">Win/Loss $</th><th class="num">Balance after</th></tr></thead>
+            <tbody id="tradeLogBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="tab-backup" class="hidden">
+        <p class="small">Your entries save automatically in this browser on this device. Use export as an extra backup or to move the data.</p>
+        <div class="btn-row">
+          <button id="exportCsv" type="button">Export CSV</button>
+          <button id="exportJson" type="button">Export backup</button>
+        </div>
+        <label style="margin-top:12px;"><span>Import backup file</span><input id="importJson" type="file" accept="application/json,.json"></label>
+      </div>
+    </section>
+
+    <p class="footer-note">Projection is an estimate based on your assumptions. It compounds the mathematical expectancy from your latest actual balance and does not predict the order of future wins and losses. This tool is for planning, not financial advice.</p>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const STORAGE_KEY = 'maximumPlayRiskLab_v1';
+    window.addEventListener('error', function(event) {
+      var status = document.getElementById('status');
+      if (status) status.textContent = 'App error: ' + (event.message || 'unknown error');
+    });
+
+
+    const defaults = {
+      startingBalance: 10000,
+      currentBalance: 10000,
+      accountRiskPct: 2,
+      stopLossPct: 20,
+      assumedWinRatePct: 57,
+      rewardRisk: 2,
+      plannedTrades: 100,
+      trades: [],
+      actualEquity: [10000]
+    };
+
+    function cloneDefaults() {
+      return JSON.parse(JSON.stringify(defaults));
+    }
+
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return cloneDefaults();
+        const parsed = JSON.parse(raw);
+        return Object.assign(cloneDefaults(), parsed);
+      } catch {
+        return cloneDefaults();
+      }
+    }
+
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+
+    function money(value) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+    }
+
+    function pct(value) { return `${Number(value).toFixed(2)}%`; }
+
+    function syncInputs() {
+      $('startingBalance').value = state.startingBalance;
+      $('accountRisk').value = state.accountRiskPct;
+      $('stopLoss').value = state.stopLossPct;
+      $('assumedWinRate').value = state.assumedWinRatePct;
+      $('rewardRisk').value = state.rewardRisk;
+      $('plannedTrades').value = state.plannedTrades;
+    }
+
+    function planFor(balance) {
+      const riskFraction = state.accountRiskPct / 100;
+      const stopFraction = state.stopLossPct / 100;
+      const dollarRisk = balance * riskFraction;
+      return {
+        dollarRisk,
+        maximumPlay: stopFraction > 0 ? dollarRisk / stopFraction : 0,
+        winProfit: dollarRisk * state.rewardRisk
+      };
+    }
+
+    function expectancyR() {
+      const p = state.assumedWinRatePct / 100;
+      return p * state.rewardRisk - (1 - p);
+    }
+
+    function expectedGrowthRate() {
+      return expectancyR() * (state.accountRiskPct / 100);
+    }
+
+    function buildProjection() {
+      const remaining = Math.max(0, state.plannedTrades - state.trades.length);
+      const growth = expectedGrowthRate();
+      const values = [state.currentBalance];
+      let balance = state.currentBalance;
+      for (let i = 0; i < remaining; i++) {
+        balance = Math.max(0, balance * (1 + growth));
+        values.push(balance);
+      }
+      return values;
+    }
+
+    function applyAssumptions() {
+      const newStart = Math.max(1, Number($('startingBalance').value) || 1);
+      state.accountRiskPct = Math.min(100, Math.max(.1, Number($('accountRisk').value) || .1));
+      state.stopLossPct = Math.min(100, Math.max(.1, Number($('stopLoss').value) || .1));
+      state.assumedWinRatePct = Math.min(100, Math.max(0, Number($('assumedWinRate').value) || 0));
+      state.rewardRisk = Math.max(.1, Number($('rewardRisk').value) || .1);
+      state.plannedTrades = Math.max(1, Math.floor(Number($('plannedTrades').value) || 1));
+      if (state.trades.length === 0) {
+        state.startingBalance = newStart;
+        state.currentBalance = newStart;
+        state.actualEquity = [newStart];
+      }
+      saveState();
+      showStatus('Assumptions applied.');
+      render();
+    }
+
+
+    function recordTradeCustom(bought, sold) {
+      const pnl = Math.round((sold - bought) * 100) / 100;
+      const result = pnl >= 0 ? 'Win' : 'Loss';
+      const balBefore = state.currentBalance;
+      const balAfter = Math.round((balBefore + pnl) * 100) / 100;
+      state.trades.push({number:state.trades.length+1,result:result,balanceBefore:balBefore,dollarRisk:bought,maximumPlay:bought,winProfit:pnl>=0?pnl:0,profitLoss:pnl,balanceAfter:balAfter});
+      state.currentBalance = balAfter;
+      state.actualEquity.push(balAfter);
+      saveState();
+      var ob=document.getElementById('override-bought');
+      var os=document.getElementById('override-sold');
+      if(ob) ob.value='';
+      if(os) os.value='';
+      render();
+    }
+
+    function recordTrade(result) {
+      if (state.trades.length >= state.plannedTrades) {
+        showStatus('Increase total planned trades before recording another trade.');
+        return;
+      }
+      const before = state.currentBalance;
+      const plan = planFor(before);
+      const pnl = result === 'Win' ? plan.winProfit : -plan.dollarRisk;
+      const after = Math.max(0, before + pnl);
+      state.trades.push({ number: state.trades.length + 1, result, balanceBefore: before, maximumPlay: plan.maximumPlay, dollarRisk: plan.dollarRisk, profitLoss: pnl, balanceAfter: after });
+      state.currentBalance = after;
+      state.actualEquity.push(after);
+      saveState();
+      showStatus(`${result} recorded. Future projection recalculated.`);
+      render();
+    }
+
+    function undoTrade() {
+      if (!state.trades.length) { showStatus('There is no trade to undo.'); return; }
+      state.trades.pop();
+      state.actualEquity.pop();
+      state.currentBalance = state.actualEquity[state.actualEquity.length - 1];
+      saveState();
+      showStatus('Last trade removed.');
+      render();
+    }
+
+    function resetTrades() {
+      if (!confirm('Reset all recorded trades and return to the starting balance?')) return;
+      const start = Math.max(1, Number($('startingBalance').value) || state.startingBalance);
+      state.startingBalance = start;
+      state.currentBalance = start;
+      state.trades = [];
+      state.actualEquity = [start];
+      saveState();
+      showStatus('All trades reset.');
+      render();
+    }
+
+    function showStatus(text) { $('status').textContent = text; }
+
+    function renderTradeLog() {
+      const body = $('tradeLogBody');
+      body.innerHTML = '';
+
+      // Build full list: actual trades + projected remaining
+      const allRows = [];
+
+      // Actual trades first
+      state.trades.forEach(t => {
+        allRows.push({
+          number: t.number,
+          type: t.result,
+          actual: true,
+          balanceBefore: t.balanceBefore,
+          maxPlay: t.maximumPlay,
+          pnl: t.profitLoss,
+          balanceAfter: t.balanceAfter
+        });
+      });
+
+      // Projected remaining trades — smooth average growth per trade
+      let projBalance = state.currentBalance;
+      const remaining = Math.max(0, state.plannedTrades - state.trades.length);
+      const growthRate = expectedGrowthRate();
+
+      for (let i = 0; i < remaining; i++) {
+        const plan = planFor(projBalance);
+        const projPnl = projBalance * growthRate;
+        const projAfter = projBalance + projPnl;
+        allRows.push({
+          number: state.trades.length + i + 1,
+          type: 'Projected',
+          actual: false,
+          balanceBefore: projBalance,
+          maxPlay: plan.maximumPlay,
+          pnl: projPnl,
+          balanceAfter: projAfter
+        });
+        projBalance = projAfter;
+      }
+
+      if (!allRows.length) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Set your assumptions and click Apply to see projected trades.</td></tr>';
+        return;
+      }
+
+      allRows.forEach(t => {
+        const tr = document.createElement('tr');
+        const isProj = !t.actual;
+        const typeLabel = isProj
+          ? `<span style="color:var(--muted);font-style:italic">Projected</span>`
+          : t.type === 'Win'
+            ? `<span style="color:var(--green);font-weight:600">Win</span>`
+            : `<span style="color:var(--red);font-weight:600">Loss</span>`;
+        const pnlColor = t.pnl >= 0 ? 'positive' : 'negative';
+        const pnlFmt = (isProj ? '~' : '') + (t.pnl >= 0 ? '+' : '') + money(t.pnl);
+        const rowStyle = isProj ? 'opacity:0.55' : '';
+        tr.style.cssText = rowStyle;
+        tr.innerHTML = `
+          <td style="${isProj?'color:var(--muted)':''}">${t.number}</td>
+          <td>${typeLabel}</td>
+          <td class="num" style="${isProj?'color:var(--muted)':''}">${money(t.balanceBefore)}</td>
+          <td class="num" style="${isProj?'color:var(--muted)':''}">${money(t.maxPlay)}</td>
+          <td class="num ${isProj?'':pnlColor}">${pnlFmt}</td>
+          <td class="num" style="${isProj?'color:var(--muted)':''}">${money(t.balanceAfter)}</td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function drawChart(projection) {
+      const svg = $('equityChart');
+      const actual = state.actualEquity;
+      const all = actual.concat(projection.slice(1));
+      const W = 720, H = 330, L = 66, R = 18, T = 20, B = 42;
+      const iw = W-L-R, ih = H-T-B;
+      const min = Math.min(...all), max = Math.max(...all);
+      const pad = Math.max(1, (max-min)*.12, max*.02);
+      const ymin = Math.max(0, min-pad), ymax = max+pad;
+      const points = Math.max(2, all.length);
+      const x = i => L + (i/Math.max(1,points-1))*iw;
+      const y = v => T + (1-(v-ymin)/Math.max(1,ymax-ymin))*ih;
+      let grid = '';
+      for (let i=0;i<=4;i++) {
+        const yy = T+(i/4)*ih;
+        const val = ymax-(i/4)*(ymax-ymin);
+        grid += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--border)" stroke-width="1"/><text x="${L-8}" y="${yy+4}" text-anchor="end" fill="var(--muted)" font-size="12">${money(val)}</text>`;
+      }
+      const actualPath = actual.map((v,i)=>`${i?'L':'M'} ${x(i)} ${y(v)}`).join(' ');
+      const offset = actual.length-1;
+      const projPath = projection.map((v,i)=>`${i?'L':'M'} ${x(offset+i)} ${y(v)}`).join(' ');
+      const split = x(offset);
+      const ticks = [0,.25,.5,.75,1].map(f=>{const i=Math.round((points-1)*f);return `<text x="${x(i)}" y="${H-12}" text-anchor="middle" fill="var(--muted)" font-size="12">${i}</text>`}).join('');
+      svg.innerHTML = `${grid}<path d="${actualPath}" fill="none" stroke="var(--accent)" stroke-width="3"/><line x1="${split}" x2="${split}" y1="${T}" y2="${T+ih}" stroke="var(--border)" stroke-dasharray="4 5"/><path d="${projPath}" fill="none" stroke="var(--blue)" stroke-width="3" stroke-dasharray="9 7"/>${ticks}`;
+    }
+
+    function render() {
+      const plan = planFor(state.currentBalance);
+      const projection = buildProjection();
+      const final = projection[projection.length-1];
+      const remaining = Math.max(0, state.plannedTrades-state.trades.length);
+      const wins = state.trades.filter(t=>t.result==='Win').length;
+      const actualWR = state.trades.length ? wins/state.trades.length*100 : 0;
+      const currentNet = state.currentBalance-state.startingBalance;
+      const projectedProfit = final-state.startingBalance;
+      const projectedReturn = state.startingBalance ? projectedProfit/state.startingBalance*100 : 0;
+      const breakeven = 100/(1+state.rewardRisk);
+
+      $('maximumPlayHero').textContent = money(plan.maximumPlay);
+      $('heroStop').textContent = pct(state.stopLossPct);
+      $('heroRisk').textContent = money(plan.dollarRisk);
+      $('currentBalance').textContent = money(state.currentBalance);
+      $('dollarRisk').textContent = money(plan.dollarRisk);
+      $('winProfit').textContent = money(plan.winProfit);
+      $('expectancyPct').textContent = pct(expectedGrowthRate()*100);
+      $('actualTrades').textContent = state.trades.length;
+      $('remainingTrades').textContent = remaining;
+      $('actualWinRate').textContent = pct(actualWR);
+      $('currentNet').textContent = `${currentNet>=0?'+':''}${money(currentNet)}`;
+      $('projectedFinal').textContent = money(final);
+      $('projectedProfit').textContent = `${projectedProfit>=0?'+':''}${money(projectedProfit)}`;
+      $('projectedReturn').textContent = pct(projectedReturn);
+      $('breakevenWin').textContent = pct(breakeven);
+      renderTradeLog();
+      drawChart(projection);
+      syncInputs();
+    }
+
+    function download(filename, text, type) {
+      const blob = new Blob([text], {type});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportCsv() {
+      const rows = [['Trade','Type','Balance Before','Total Play','Win/Loss $','Balance After']];
+
+      // Actual trades
+      state.trades.forEach(t => rows.push([
+        t.number, t.result,
+        t.balanceBefore.toFixed(2),
+        t.maximumPlay.toFixed(2),
+        t.profitLoss.toFixed(2),
+        t.balanceAfter.toFixed(2)
+      ]));
+
+      // Projected remaining trades — smooth average growth
+      let projBalance = state.currentBalance;
+      const remaining = Math.max(0, state.plannedTrades - state.trades.length);
+      const growthRate = expectedGrowthRate();
+      for (let i = 0; i < remaining; i++) {
+        const plan = planFor(projBalance);
+        const projPnl = projBalance * growthRate;
+        const projAfter = projBalance + projPnl;
+        rows.push([
+          state.trades.length + i + 1,
+          'Projected',
+          projBalance.toFixed(2),
+          plan.maximumPlay.toFixed(2),
+          projPnl.toFixed(2),
+          projAfter.toFixed(2)
+        ]);
+        projBalance = projAfter;
+      }
+
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+      download('risk_lab_trades.csv', csv, 'text/csv');
+    }
+
+    function exportJson() { download('risk_lab_backup.json', JSON.stringify(state,null,2), 'application/json'); }
+
+    function importJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          state = Object.assign(cloneDefaults(), parsed);
+          saveState();
+          showStatus('Backup imported.');
+          render();
+        } catch { showStatus('That backup file could not be read.'); }
+      };
+      reader.readAsText(file);
+    }
+
+    document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active', b===btn));
+      ['chart','trades','backup'].forEach(name=>$(`tab-${name}`).classList.toggle('hidden', name!==btn.dataset.tab));
+    }));
+
+    $('applySettings').addEventListener('click', applyAssumptions);
+    $('resetTrades').addEventListener('click', resetTrades);
+    $('winButton').addEventListener('click', function() {
+      var ob=document.getElementById('override-bought');
+      var os=document.getElementById('override-sold');
+      var bought=parseFloat(ob?ob.value:'');
+      var sold=parseFloat(os?os.value:'');
+      if(!isNaN(bought)&&!isNaN(sold)&&bought>0){recordTradeCustom(bought,sold);}else{recordTrade('Win');}
+    });
+    $('lossButton').addEventListener('click', function() {
+      var ob=document.getElementById('override-bought');
+      var os=document.getElementById('override-sold');
+      var bought=parseFloat(ob?ob.value:'');
+      var sold=parseFloat(os?os.value:'');
+      if(!isNaN(bought)&&!isNaN(sold)&&bought>0){recordTradeCustom(bought,sold);}else{recordTrade('Loss');}
+    });
+    $('undoButton').addEventListener('click', undoTrade);
+    $('exportCsv').addEventListener('click', exportCsv);
+    $('exportJson').addEventListener('click', exportJson);
+    $('importJson').addEventListener('change', e=>{ if (e.target.files[0]) importJson(e.target.files[0]); });
+
+    render();
+  </script>
+  </main>
+</div>
+<script>
+const $ = (id) => document.getElementById(id);
+    const STORAGE_KEY = 'maximumPlayRiskLab_v1';
+    window.addEventListener('error', function(event) {
+      var status = document.getElementById('status');
+      if (status) status.textContent = 'App error: ' + (event.message || 'unknown error');
+    });
+
+
+    const defaults = {
+      startingBalance: 10000,
+      currentBalance: 10000,
+      accountRiskPct: 2,
+      stopLossPct: 20,
+      assumedWinRatePct: 57,
+      rewardRisk: 2,
+      plannedTrades: 100,
+      trades: [],
+      actualEquity: [10000]
+    };
+
+    function cloneDefaults() {
+      return JSON.parse(JSON.stringify(defaults));
+    }
+
+    let state = loadState();
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return cloneDefaults();
+        const parsed = JSON.parse(raw);
+        return Object.assign(cloneDefaults(), parsed);
+      } catch {
+        return cloneDefaults();
+      }
+    }
+
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch {}
+    }
+
+    function money(value) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
+    }
+
+    function pct(value) { return `${Number(value).toFixed(2)}%`; }
+
+    function syncInputs() {
+      $('startingBalance').value = state.startingBalance;
+      $('accountRisk').value = state.accountRiskPct;
+      $('stopLoss').value = state.stopLossPct;
+      $('assumedWinRate').value = state.assumedWinRatePct;
+      $('rewardRisk').value = state.rewardRisk;
+      $('plannedTrades').value = state.plannedTrades;
+    }
+
+    function planFor(balance) {
+      const riskFraction = state.accountRiskPct / 100;
+      const stopFraction = state.stopLossPct / 100;
+      const dollarRisk = balance * riskFraction;
+      return {
+        dollarRisk,
+        maximumPlay: stopFraction > 0 ? dollarRisk / stopFraction : 0,
+        winProfit: dollarRisk * state.rewardRisk
+      };
+    }
+
+    function expectancyR() {
+      const p = state.assumedWinRatePct / 100;
+      return p * state.rewardRisk - (1 - p);
+    }
+
+    function expectedGrowthRate() {
+      return expectancyR() * (state.accountRiskPct / 100);
+    }
+
+    function buildProjection() {
+      const remaining = Math.max(0, state.plannedTrades - state.trades.length);
+      const growth = expectedGrowthRate();
+      const values = [state.currentBalance];
+      let balance = state.currentBalance;
+      for (let i = 0; i < remaining; i++) {
+        balance = Math.max(0, balance * (1 + growth));
+        values.push(balance);
+      }
+      return values;
+    }
+
+    function applyAssumptions() {
+      const newStart = Math.max(1, Number($('startingBalance').value) || 1);
+      state.accountRiskPct = Math.min(100, Math.max(.1, Number($('accountRisk').value) || .1));
+      state.stopLossPct = Math.min(100, Math.max(.1, Number($('stopLoss').value) || .1));
+      state.assumedWinRatePct = Math.min(100, Math.max(0, Number($('assumedWinRate').value) || 0));
+      state.rewardRisk = Math.max(.1, Number($('rewardRisk').value) || .1);
+      state.plannedTrades = Math.max(1, Math.floor(Number($('plannedTrades').value) || 1));
+      if (state.trades.length === 0) {
+        state.startingBalance = newStart;
+        state.currentBalance = newStart;
+        state.actualEquity = [newStart];
+      }
+      saveState();
+      showStatus('Assumptions applied.');
+      render();
+    }
+
+    function recordTrade(result) {
+      if (state.trades.length >= state.plannedTrades) {
+        showStatus('Increase total planned trades before recording another trade.');
+        return;
+      }
+      const before = state.currentBalance;
+      const plan = planFor(before);
+      const pnl = result === 'Win' ? plan.winProfit : -plan.dollarRisk;
+      const after = Math.max(0, before + pnl);
+      state.trades.push({ number: state.trades.length + 1, result, balanceBefore: before, maximumPlay: plan.maximumPlay, dollarRisk: plan.dollarRisk, profitLoss: pnl, balanceAfter: after });
+      state.currentBalance = after;
+      state.actualEquity.push(after);
+      saveState();
+      showStatus(`${result} recorded. Future projection recalculated.`);
+      render();
+    }
+
+    function undoTrade() {
+      if (!state.trades.length) { showStatus('There is no trade to undo.'); return; }
+      state.trades.pop();
+      state.actualEquity.pop();
+      state.currentBalance = state.actualEquity[state.actualEquity.length - 1];
+      saveState();
+      showStatus('Last trade removed.');
+      render();
+    }
+
+    function resetTrades() {
+      if (!confirm('Reset all recorded trades and return to the starting balance?')) return;
+      const start = Math.max(1, Number($('startingBalance').value) || state.startingBalance);
+      state.startingBalance = start;
+      state.currentBalance = start;
+      state.trades = [];
+      state.actualEquity = [start];
+      saveState();
+      showStatus('All trades reset.');
+      render();
+    }
+
+    function showStatus(text) { $('status').textContent = text; }
+
+    function renderTradeLog() {
+      const body = $('tradeLogBody');
+      body.innerHTML = '';
+
+      // Build full list: actual trades + projected remaining
+      const allRows = [];
+
+      // Actual trades first
+      state.trades.forEach(t => {
+        allRows.push({
+          number: t.number,
+          type: t.result,
+          actual: true,
+          balanceBefore: t.balanceBefore,
+          maxPlay: t.maximumPlay,
+          pnl: t.profitLoss,
+          balanceAfter: t.balanceAfter
+        });
+      });
+
+      // Projected remaining trades — smooth average growth per trade
+      let projBalance = state.currentBalance;
+      const remaining = Math.max(0, state.plannedTrades - state.trades.length);
+      const growthRate = expectedGrowthRate();
+
+      for (let i = 0; i < remaining; i++) {
+        const plan = planFor(projBalance);
+        const projPnl = projBalance * growthRate;
+        const projAfter = projBalance + projPnl;
+        allRows.push({
+          number: state.trades.length + i + 1,
+          type: 'Projected',
+          actual: false,
+          balanceBefore: projBalance,
+          maxPlay: plan.maximumPlay,
+          pnl: projPnl,
+          balanceAfter: projAfter
+        });
+        projBalance = projAfter;
+      }
+
+      if (!allRows.length) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:20px;">Set your assumptions and click Apply to see projected trades.</td></tr>';
+        return;
+      }
+
+      allRows.forEach(t => {
+        const tr = document.createElement('tr');
+        const isProj = !t.actual;
+        const typeLabel = isProj
+          ? `<span style="color:var(--muted);font-style:italic">Projected</span>`
+          : t.type === 'Win'
+            ? `<span style="color:var(--green);font-weight:600">Win</span>`
+            : `<span style="color:var(--red);font-weight:600">Loss</span>`;
+        const pnlColor = t.pnl >= 0 ? 'positive' : 'negative';
+        const pnlFmt = (isProj ? '~' : '') + (t.pnl >= 0 ? '+' : '') + money(t.pnl);
+        const rowStyle = isProj ? 'opacity:0.55' : '';
+        tr.style.cssText = rowStyle;
+        tr.innerHTML = `
+          <td style="${isProj?'color:var(--muted)':''}">${t.number}</td>
+          <td>${typeLabel}</td>
+          <td class="num" style="${isProj?'color:var(--muted)':''}">${money(t.balanceBefore)}</td>
+          <td class="num" style="${isProj?'color:var(--muted)':''}">${money(t.maxPlay)}</td>
+          <td class="num ${isProj?'':pnlColor}">${pnlFmt}</td>
+          <td class="num" style="${isProj?'color:var(--muted)':''}">${money(t.balanceAfter)}</td>`;
+        body.appendChild(tr);
+      });
+    }
+
+    function drawChart(projection) {
+      const svg = $('equityChart');
+      const actual = state.actualEquity;
+      const all = actual.concat(projection.slice(1));
+      const W = 720, H = 330, L = 66, R = 18, T = 20, B = 42;
+      const iw = W-L-R, ih = H-T-B;
+      const min = Math.min(...all), max = Math.max(...all);
+      const pad = Math.max(1, (max-min)*.12, max*.02);
+      const ymin = Math.max(0, min-pad), ymax = max+pad;
+      const points = Math.max(2, all.length);
+      const x = i => L + (i/Math.max(1,points-1))*iw;
+      const y = v => T + (1-(v-ymin)/Math.max(1,ymax-ymin))*ih;
+      let grid = '';
+      for (let i=0;i<=4;i++) {
+        const yy = T+(i/4)*ih;
+        const val = ymax-(i/4)*(ymax-ymin);
+        grid += `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="var(--border)" stroke-width="1"/><text x="${L-8}" y="${yy+4}" text-anchor="end" fill="var(--muted)" font-size="12">${money(val)}</text>`;
+      }
+      const actualPath = actual.map((v,i)=>`${i?'L':'M'} ${x(i)} ${y(v)}`).join(' ');
+      const offset = actual.length-1;
+      const projPath = projection.map((v,i)=>`${i?'L':'M'} ${x(offset+i)} ${y(v)}`).join(' ');
+      const split = x(offset);
+      const ticks = [0,.25,.5,.75,1].map(f=>{const i=Math.round((points-1)*f);return `<text x="${x(i)}" y="${H-12}" text-anchor="middle" fill="var(--muted)" font-size="12">${i}</text>`}).join('');
+      svg.innerHTML = `${grid}<path d="${actualPath}" fill="none" stroke="var(--accent)" stroke-width="3"/><line x1="${split}" x2="${split}" y1="${T}" y2="${T+ih}" stroke="var(--border)" stroke-dasharray="4 5"/><path d="${projPath}" fill="none" stroke="var(--blue)" stroke-width="3" stroke-dasharray="9 7"/>${ticks}`;
+    }
+
+    function render() {
+      const plan = planFor(state.currentBalance);
+      const projection = buildProjection();
+      const final = projection[projection.length-1];
+      const remaining = Math.max(0, state.plannedTrades-state.trades.length);
+      const wins = state.trades.filter(t=>t.result==='Win').length;
+      const actualWR = state.trades.length ? wins/state.trades.length*100 : 0;
+      const currentNet = state.currentBalance-state.startingBalance;
+      const projectedProfit = final-state.startingBalance;
+      const projectedReturn = state.startingBalance ? projectedProfit/state.startingBalance*100 : 0;
+      const breakeven = 100/(1+state.rewardRisk);
+
+      $('maximumPlayHero').textContent = money(plan.maximumPlay);
+      $('heroStop').textContent = pct(state.stopLossPct);
+      $('heroRisk').textContent = money(plan.dollarRisk);
+      $('currentBalance').textContent = money(state.currentBalance);
+      $('dollarRisk').textContent = money(plan.dollarRisk);
+      $('winProfit').textContent = money(plan.winProfit);
+      $('expectancyPct').textContent = pct(expectedGrowthRate()*100);
+      $('actualTrades').textContent = state.trades.length;
+      $('remainingTrades').textContent = remaining;
+      $('actualWinRate').textContent = pct(actualWR);
+      $('currentNet').textContent = `${currentNet>=0?'+':''}${money(currentNet)}`;
+      $('projectedFinal').textContent = money(final);
+      $('projectedProfit').textContent = `${projectedProfit>=0?'+':''}${money(projectedProfit)}`;
+      $('projectedReturn').textContent = pct(projectedReturn);
+      $('breakevenWin').textContent = pct(breakeven);
+      renderTradeLog();
+      drawChart(projection);
+      syncInputs();
+    }
+
+    function download(filename, text, type) {
+      const blob = new Blob([text], {type});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportCsv() {
+      const rows = [['Trade','Type','Balance Before','Total Play','Win/Loss $','Balance After']];
+
+      // Actual trades
+      state.trades.forEach(t => rows.push([
+        t.number, t.result,
+        t.balanceBefore.toFixed(2),
+        t.maximumPlay.toFixed(2),
+        t.profitLoss.toFixed(2),
+        t.balanceAfter.toFixed(2)
+      ]));
+
+      // Projected remaining trades — smooth average growth
+      let projBalance = state.currentBalance;
+      const remaining = Math.max(0, state.plannedTrades - state.trades.length);
+      const growthRate = expectedGrowthRate();
+      for (let i = 0; i < remaining; i++) {
+        const plan = planFor(projBalance);
+        const projPnl = projBalance * growthRate;
+        const projAfter = projBalance + projPnl;
+        rows.push([
+          state.trades.length + i + 1,
+          'Projected',
+          projBalance.toFixed(2),
+          plan.maximumPlay.toFixed(2),
+          projPnl.toFixed(2),
+          projAfter.toFixed(2)
+        ]);
+        projBalance = projAfter;
+      }
+
+      const csv = rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(',')).join('\n');
+      download('risk_lab_trades.csv', csv, 'text/csv');
+    }
+
+    function exportJson() { download('risk_lab_backup.json', JSON.stringify(state,null,2), 'application/json'); }
+
+    function importJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          state = Object.assign(cloneDefaults(), parsed);
+          saveState();
+          showStatus('Backup imported.');
+          render();
+        } catch { showStatus('That backup file could not be read.'); }
+      };
+      reader.readAsText(file);
+    }
+
+    document.querySelectorAll('[data-tab]').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active', b===btn));
+      ['chart','trades','backup'].forEach(name=>$(`tab-${name}`).classList.toggle('hidden', name!==btn.dataset.tab));
+    }));
+
+    $('applySettings').addEventListener('click', applyAssumptions);
+    $('resetTrades').addEventListener('click', resetTrades);
+    $('winButton').addEventListener('click', ()=>recordTrade('Win'));
+    $('lossButton').addEventListener('click', ()=>recordTrade('Loss'));
+    $('undoButton').addEventListener('click', undoTrade);
+    $('exportCsv').addEventListener('click', exportCsv);
+    $('exportJson').addEventListener('click', exportJson);
+    $('importJson').addEventListener('change', e=>{ if (e.target.files[0]) importJson(e.target.files[0]); });
+
+    render();
+</script>
+</body>
+</html>
