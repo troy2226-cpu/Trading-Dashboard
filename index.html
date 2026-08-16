@@ -1,4 +1,4 @@
-<!-- v20260816120708 -->
+<!-- v20260816125548 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260816120708">
+<meta name="version" content="20260816125548">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260816120708</title>
+<title>9/90 EMA Trading Dashboard v20260816125548</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1105,28 +1105,22 @@ function renderDistChart(){
   if(!ctx) return;
   const ft=filteredTrades();
 
-  // Build buckets from -100% to +100% in 10% increments
+  // Build buckets by ABSOLUTE % return size (0-10%, 10-20%, etc.)
   const bucketDefs=[];
-  for(let i=-100;i<100;i+=10) bucketDefs.push({low:i,high:i+10,label:(i<0?'':'')+i+'% to '+(i+10)+'%'});
-  bucketDefs.push({low:100,high:Infinity,label:'>100%'});
-  bucketDefs.push({low:-Infinity,high:-100,label:'<-100%'});
-
-  bucketDefs.forEach(b=>{b.wins=0;b.losses=0;});
+  for(let i=0;i<100;i+=10) bucketDefs.push({low:i,high:i+10,label:i+'% to '+(i+10)+'%',wins:0,losses:0});
+  bucketDefs.push({low:100,high:Infinity,label:'>100%',wins:0,losses:0});
 
   ft.forEach(t=>{
-    const pct=t.pct||0;
+    const absPct=Math.abs(t.pct||0);
     let bkt;
-    if(pct>=100) bkt=bucketDefs.find(b=>b.low===100);
-    else if(pct<-100) bkt=bucketDefs.find(b=>b.high===-100);
-    else bkt=bucketDefs.find(b=>pct>=b.low&&pct<b.high);
+    if(absPct>=100) bkt=bucketDefs.find(b=>b.low===100);
+    else bkt=bucketDefs.find(b=>absPct>=b.low&&absPct<b.high);
     if(!bkt) return;
     if(t.result==='W') bkt.wins++;
     else bkt.losses++;
   });
 
-  // Only show buckets that have trades
-  const used=bucketDefs.filter(b=>b.wins+b.losses>0)
-    .sort((a,b)=>a.low-b.low);
+  const used=bucketDefs.filter(b=>b.wins+b.losses>0);
 
   if(!used.length){
     if(distChartInst){distChartInst.destroy();distChartInst=null;}
@@ -1180,7 +1174,7 @@ function renderDistChart(){
   }).join('');
   tbl.innerHTML=`<table class="trade-table" style="min-width:360px">
     <thead><tr>
-      <th class="left">Return range</th>
+      <th class="left">Move size</th>
       <th>Total</th>
       <th style="color:var(--green)">Wins</th>
       <th style="color:var(--red)">Losses</th>
