@@ -1,4 +1,4 @@
-<!-- v20260819233745 -->
+<!-- v20260819235129 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260819233745">
+<meta name="version" content="20260819235129">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260819233745</title>
+<title>9/90 EMA Trading Dashboard v20260819235129</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -2088,6 +2088,173 @@ function renderTracker(){
 // Init tracker on load
 if(typeof loadTrackerData === "function") loadTrackerData();
 if(typeof initTracker === "function") initTracker();
+</script>
+</body>
+</html
+// ===== GOAL TRACKER SPREADSHEET =====
+const TRACKER_KEY = 'trading_tracker_v2';
+let trackerData = {};
+
+try { trackerData = JSON.parse(localStorage.getItem(TRACKER_KEY)||'{}'); } catch(e){ trackerData={}; }
+
+function saveTrackerData(){ try{ localStorage.setItem(TRACKER_KEY, JSON.stringify(trackerData)); }catch(e){} }
+
+function resetTracker(){
+  if(!confirm('Reset all entered P&L values?')) return;
+  trackerData={};
+  saveTrackerData();
+  renderTracker();
+}
+
+function isWeekday(d){ var day=d.getDay(); return day!==0&&day!==6; }
+
+function getWeekdays(startDateStr, count){
+  var days=[];
+  var d=new Date(startDateStr+'T12:00:00');
+  while(days.length<count){
+    if(isWeekday(d)) days.push(new Date(d));
+    d=new Date(d); d.setDate(d.getDate()+1);
+  }
+  return days;
+}
+
+function fmtM(n){ return '$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtP(n){ return (n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function renderTracker(){
+  var startBal = parseFloat(document.getElementById('tracker-start-bal').value)||650;
+  var startDate = document.getElementById('tracker-start-date').value||'2026-08-24';
+  var GOAL = 200000;
+  var weekdays = getWeekdays(startDate, 3000);
+  var tbody = document.getElementById('tracker-tbody');
+  if(!tbody) return;
+
+  var html = '';
+  var bal = startBal;
+  var totalPnl = 0;
+  var daysTraded = 0;
+  var tradesEntered = 0;
+  var goalReached = false;
+
+  for(var wi=0; wi<weekdays.length; wi++){
+    var date = weekdays[wi];
+    var dateStr = date.toISOString().slice(0,10);
+    var dateLabel = (date.getMonth()+1)+'/'+(date.getDate());
+    var dayNum = wi+1;
+    var dayStartBal = bal;
+    var dayPnl = 0;
+    var dayEntered = 0;
+
+    for(var t=1; t<=3; t++){
+      var rowKey = dateStr+'-T'+t;
+      var entered = trackerData[rowKey] !== undefined && trackerData[rowKey] !== '';
+      var actualPnl = entered ? parseFloat(trackerData[rowKey]) : null;
+      var balIn = bal;
+      var play = Math.round(balIn * 0.25 * 100)/100;
+      var tenPct = Math.round(play * 0.10 * 100)/100;
+
+      var newBal;
+      if(entered && actualPnl !== null && !isNaN(actualPnl)){
+        bal = Math.round((bal + actualPnl)*100)/100;
+        newBal = bal;
+        dayPnl += actualPnl;
+        dayEntered++;
+        totalPnl += actualPnl;
+        tradesEntered++;
+      } else {
+        // projected: 10% win
+        newBal = Math.round((bal + tenPct)*100)/100;
+        bal = newBal;
+      }
+
+      var isFirst = t===1;
+      var isLast = t===3;
+      var topBorder = isFirst ? 'border-top:1.5px solid var(--border-md);' : '';
+      var botBorder = isLast ? 'border-bottom:1.5px solid var(--border-md);' : '';
+      var rowStyle = 'style="'+topBorder+botBorder+'"';
+
+      var newBalColor = (entered && actualPnl !== null) ? (actualPnl>=0?'var(--green)':'var(--red)') : 'var(--text-hint)';
+      var inputClass = entered ? 'tracker-input entered' : 'tracker-input';
+      var inputVal = entered ? trackerData[rowKey] : '';
+      var phText = 'proj +'+fmtM(tenPct);
+
+      var dailyHtml = '';
+      if(isLast){
+        if(dayEntered>0){
+          dailyHtml = '<span style="color:'+(dayPnl>=0?'var(--green)':'var(--red)')+';font-weight:700">'+fmtP(dayPnl)+'</span>';
+        } else {
+          // projected daily total (3 trades at 10% compounding)
+          var p1 = Math.round(dayStartBal*0.25*0.10*100)/100;
+          var b1 = dayStartBal+p1;
+          var p2 = Math.round(b1*0.25*0.10*100)/100;
+          var b2 = b1+p2;
+          var p3 = Math.round(b2*0.25*0.10*100)/100;
+          var pDay = Math.round((p1+p2+p3)*100)/100;
+          dailyHtml = '<span style="color:var(--text-hint)">+'+fmtM(pDay)+'</span>';
+        }
+      }
+
+      html += '<tr '+rowStyle+'>';
+      html += '<td class="left td-date">'+(isFirst?dateLabel:'')+'</td>';
+      html += '<td>'+(isFirst?dayNum:'')+'</td>';
+      html += '<td>'+t+'</td>';
+      html += '<td>'+fmtM(balIn)+'</td>';
+      html += '<td>'+fmtM(play)+'</td>';
+      html += '<td style="color:var(--text-hint)">+'+fmtM(tenPct)+'</td>';
+      html += '<td><input class="'+inputClass+'" type="number" step="0.01" id="ti-'+rowKey+'" value="'+inputVal+'" placeholder="'+phText+'" onchange="enterPnl(\''+rowKey+'\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();focusNext(\''+rowKey+'\');}"></td>';
+      html += '<td style="color:'+newBalColor+';font-weight:600">'+fmtM(newBal)+'</td>';
+      html += '<td>'+dailyHtml+'</td>';
+      html += '<td style="color:var(--text-hint)">'+fmtM(newBal)+'</td>';
+      html += '</tr>';
+    }
+
+    if(daysTraded<dayNum && dayEntered>0) daysTraded++;
+
+    if(bal >= GOAL && !goalReached){
+      html += '<tr style="background:var(--green-bg)"><td colspan="10" style="text-align:center;padding:14px;font-weight:700;color:var(--green)">Goal of $200,000 reached on Day '+dayNum+'!</td></tr>';
+      goalReached = true;
+      break;
+    }
+  }
+
+  tbody.innerHTML = html;
+
+  // Summary
+  var summary = document.getElementById('tracker-summary');
+  if(summary){
+    var curBal = startBal + totalPnl;
+    var growth = Math.round((curBal-startBal)/startBal*10000)/100;
+    var goalPct = Math.min(100,Math.round(Math.max(0,curBal-startBal)/(GOAL-startBal)*100));
+    summary.innerHTML =
+      '<div class="metric"><div class="label">Current balance</div><div class="value '+(curBal>=startBal?'green':'red')+'">'+fmtM(curBal)+'</div></div>'+
+      '<div class="metric"><div class="label">Total P&L</div><div class="value '+(totalPnl>=0?'green':'red')+'">'+fmtP(totalPnl)+'</div></div>'+
+      '<div class="metric"><div class="label">Growth</div><div class="value '+(growth>=0?'green':'red')+'">'+(growth>=0?'+':'')+growth+'%</div></div>'+
+      '<div class="metric"><div class="label">Days traded</div><div class="value">'+daysTraded+'</div></div>'+
+      '<div class="metric"><div class="label">Trades entered</div><div class="value">'+tradesEntered+'</div></div>'+
+      '<div class="metric"><div class="label">Goal progress</div><div class="value">'+goalPct+'%</div></div>';
+  }
+}
+
+function enterPnl(rowKey, val){
+  if(val===''||val===null){ delete trackerData[rowKey]; }
+  else { var n=parseFloat(val); if(!isNaN(n)) trackerData[rowKey]=n; }
+  saveTrackerData();
+  renderTracker();
+  setTimeout(function(){ var el=document.getElementById('ti-'+rowKey); if(el) el.focus(); },50);
+}
+
+function focusNext(rowKey){
+  var parts=rowKey.split('-T');
+  var date=parts[0];
+  var tnum=parseInt(parts[1]);
+  if(tnum<3){ var next=date+'-T'+(tnum+1); var el=document.getElementById('ti-'+next); if(el) el.focus(); }
+}
+
+function initTracker(){ renderTracker(); }
+
+// Call on load
+setTimeout(function(){ if(typeof renderTracker==='function') renderTracker(); }, 200);
+
 </script>
 </body>
 </html>
