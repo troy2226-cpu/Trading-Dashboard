@@ -1,4 +1,4 @@
-<!-- v20260816125548 -->
+<!-- v20260818233723 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260816125548">
+<meta name="version" content="20260818233723">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260816125548</title>
+<title>9/90 EMA Trading Dashboard v20260818233723</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -187,6 +187,28 @@ canvas{width:100%!important}
 .withdraw-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:0.5px solid var(--border);font-size:12px}
 .withdraw-row:last-child{border-bottom:none}
 
+
+/* Goal tracker spreadsheet */
+.tracker-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.tracker-table-wrap{overflow-x:auto;overflow-y:auto;max-height:70vh;border:0.5px solid var(--border);border-radius:var(--radius-lg)}
+.tracker-table{width:100%;border-collapse:collapse;font-size:12px;min-width:700px}
+.tracker-table th{text-align:center;padding:8px 8px;color:var(--text-secondary);font-weight:600;border-bottom:0.5px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;background:var(--bg-secondary);position:sticky;top:0;z-index:2}
+.tracker-table th.left{text-align:left}
+.tracker-table td{padding:7px 8px;border-bottom:0.5px solid var(--border);color:var(--text-primary);text-align:center;white-space:nowrap;font-size:12px}
+.tracker-table td.left{text-align:left}
+.tracker-table tr.day-start td{border-top:1.5px solid var(--border-md)}
+.tracker-table tr.day-end td{border-bottom:1.5px solid var(--border-md)}
+.tracker-table tr:hover td{background:var(--bg-secondary)}
+.tracker-input{width:80px;padding:4px 6px;font-size:12px;border:0.5px solid var(--border-md);border-radius:4px;background:var(--bg-secondary);color:var(--text-primary);text-align:center;outline:none}
+.tracker-input:focus{border-color:var(--blue-mid)}
+.tracker-input.entered{background:var(--blue-bg);border-color:var(--blue-mid);font-weight:600}
+.td-green{color:var(--green);font-weight:600}
+.td-red{color:var(--red);font-weight:600}
+.td-proj{color:var(--text-hint)}
+.td-daily{font-weight:700;font-size:13px}
+.td-date{color:var(--text-secondary);font-size:11px}
+.tr-goal td{background:var(--green-bg)!important;font-weight:700;color:var(--green)}
+.tracker-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
 </style>
 </head>
 <body>
@@ -404,29 +426,35 @@ canvas{width:100%!important}
 
   <!-- GOAL TRACKER -->
   <div id="panel-progress" class="panel">
-    <div class="card">
-      <div class="section-title">Goal: $10,000 → $200,000</div>
-      <div style="margin-bottom:1.5rem">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-secondary);margin-bottom:8px">
-          <span id="goal-label">$0 of $190,000 needed</span>
-          <span id="goal-pct" style="font-weight:600">0%</span>
+    <div class="tracker-summary" id="tracker-summary"></div>
+    <div class="card" style="padding:14px 16px">
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+        <div class="section-title" style="margin-bottom:0">Trading plan — $650 → $200,000</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
+          <label style="font-size:12px;color:var(--text-secondary)">Start balance:</label>
+          <input type="number" id="tracker-start-bal" value="650" style="width:80px;font-size:12px;padding:5px 8px;border:0.5px solid var(--border-md);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary)" onchange="initTracker()">
+          <label style="font-size:12px;color:var(--text-secondary)">Start date:</label>
+          <input type="date" id="tracker-start-date" value="2026-08-24" style="font-size:12px;padding:5px 8px;border:0.5px solid var(--border-md);border-radius:var(--radius);background:var(--bg-secondary);color:var(--text-primary)" onchange="initTracker()">
+          <button class="btn sm" onclick="resetTracker()">Reset</button>
         </div>
-        <div class="progress-bar"><div class="progress-fill" id="goal-bar" style="width:0%"></div></div>
       </div>
-      <div class="section-title">Weekly summary</div>
-      <div id="weekly-list"></div>
-    </div>
-    <div class="card">
-      <div class="section-title">Compound plan — actuals + projection to $200,000</div>
-      <div style="overflow-x:auto;max-height:480px;overflow-y:auto">
-        <table class="trade-table" style="min-width:500px">
-          <thead style="position:sticky;top:0;z-index:1;background:var(--bg-primary)">
+      <div class="tracker-table-wrap">
+        <table class="tracker-table">
+          <thead>
             <tr>
-              <th class="left">Trade</th><th>Starting balance</th>
-              <th>Trade size / Bought</th><th>P&L / Projected gain</th><th>End balance</th>
+              <th class="left">Date</th>
+              <th>Day</th>
+              <th>Trade</th>
+              <th>Balance</th>
+              <th>Play (25%)</th>
+              <th>10% win</th>
+              <th>Actual P&L</th>
+              <th>New balance</th>
+              <th>Daily total</th>
+              <th>Projected</th>
             </tr>
           </thead>
-          <tbody id="compound-tbody"></tbody>
+          <tbody id="tracker-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -1792,6 +1820,7 @@ function showPanel(name,btn){
   if(name==='calendar') renderCalendar();
   if(name==='charts') renderCharts();
   if(name==='journal'){ renderJournalCalendar(); if(jSelectedDate) loadJournalDay(jSelectedDate); }
+  if(name==='progress') initTracker();
   if(name==='risklab'){ if(typeof initRiskLab==='function') initRiskLab(); if(typeof renderAll_rl==='function') renderAll_rl(); }
 }
 
