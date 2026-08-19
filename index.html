@@ -1,4 +1,4 @@
-<!-- v20260818233723 -->
+<!-- v20260819103541 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260818233723">
+<meta name="version" content="20260819103541">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260818233723</title>
+<title>9/90 EMA Trading Dashboard v20260819103541</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1955,4 +1955,135 @@ loadTrades();
 
 </script>
 </body>
-</html>
+</html>function renderTracker(){
+  const startBal = parseFloat(document.getElementById('tracker-start-bal').value)||650;
+  const startDate = document.getElementById('tracker-start-date').value||'2026-08-24';
+  const GOAL = 200000;
+  const weekdays = getWeekdays(startDate, 2000);
+
+  const tbody = document.getElementById('tracker-tbody');
+  if(!tbody) return;
+
+  let rows = '';
+  let runBalance = startBal;
+  let projBalance = startBal;
+  let dayNum = 0;
+  let tradeNum = 0;
+  let goalReached = false;
+  let totalActualPnl = 0;
+  let daysTraded = 0;
+  let tradesEntered = 0;
+
+  for(let wi=0; wi<weekdays.length; wi++){
+    const date = weekdays[wi];
+    const dateStr = date.toISOString().slice(0,10);
+    const dateLabel = date.toLocaleDateString('en-US',{month:'numeric',day:'numeric'});
+    dayNum++;
+
+    let dayStartBal = runBalance;
+    let dayProjStartBal = projBalance;
+    let dayPnl = 0;
+    let dayHasEntry = false;
+    let dayTradeRows = '';
+
+    for(let t=1; t<=3; t++){
+      tradeNum++;
+      const rowKey = dateStr+'-T'+t;
+      const entered = trackerData[rowKey] !== undefined;
+      const actualPnl = entered ? parseFloat(trackerData[rowKey]) : null;
+
+      // Balance for this row = running balance going INTO this trade
+      const balForRow = runBalance;
+
+      // Play and 10% based on current balance
+      const play = Math.round(balForRow * 0.25 * 100) / 100;
+      const tenPct = Math.round(play * 0.10 * 100) / 100;
+
+      // Projected balance after this trade (always 10% win)
+      const projPlay = Math.round(projBalance * 0.25 * 100)/100;
+      const projWin = Math.round(projPlay * 0.10 * 100)/100;
+      const projAfter = Math.round((projBalance + projWin)*100)/100;
+
+      // New balance after this trade
+      let newBal;
+      if(entered){
+        runBalance = Math.round((runBalance + actualPnl)*100)/100;
+        newBal = runBalance;
+        dayPnl += actualPnl;
+        dayHasEntry = true;
+        totalActualPnl += actualPnl;
+        tradesEntered++;
+        projBalance = projAfter; // keep proj moving
+      } else {
+        newBal = projAfter; // show projected as new balance
+        projBalance = projAfter;
+      }
+
+      const isFirstTrade = t===1;
+      const isLastTrade = t===3;
+      const trClass = (isFirstTrade ? ' day-start' : '') + (isLastTrade ? ' day-end' : '');
+      const pnlColor = entered ? (actualPnl >= 0 ? 'td-green' : 'td-red') : 'td-proj';
+      const newBalColor = entered ? (newBal >= balForRow ? 'td-green' : 'td-red') : 'td-proj';
+
+      // Daily total — show on last trade if any entries, else show projected daily
+      let dailyCell = '';
+      if(isLastTrade){
+        if(dayHasEntry){
+          dailyCell = `<span class="${dayPnl>=0?'td-green':'td-red'}">${fmtPnl(dayPnl)}</span>`;
+        } else {
+          // projected daily = 3 trades at 10% compounding from dayStartBal
+          const pd1 = Math.round(dayProjStartBal*0.25*0.10*100)/100;
+          const pd2 = Math.round((dayProjStartBal+pd1)*0.25*0.10*100)/100;
+          const pd3 = Math.round((dayProjStartBal+pd1+pd2)*0.25*0.10*100)/100;
+          const pdTotal = Math.round((pd1+pd2+pd3)*100)/100;
+          dailyCell = `<span class="td-proj">+${fmtMoney(pdTotal)}</span>`;
+        }
+      }
+
+      dayTradeRows += `<tr class="${trClass}">
+        <td class="left td-date">${isFirstTrade ? dateLabel : ''}</td>
+        <td>${isFirstTrade ? dayNum : ''}</td>
+        <td>${t}</td>
+        <td>${fmtMoney(balForRow)}</td>
+        <td>${fmtMoney(play)}</td>
+        <td class="td-proj">+${fmtMoney(tenPct)}</td>
+        <td><input class="tracker-input${entered?' entered':''}" type="number" step="0.01"
+          id="ti-${rowKey}" value="${entered?trackerData[rowKey]:''}"
+          placeholder="${entered?'':'proj +'+fmtMoney(tenPct)}"
+          onchange="enterPnl('${rowKey}', this.value)"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();focusNextInput('${rowKey}');}">
+        </td>
+        <td class="${newBalColor}">${fmtMoney(newBal)}</td>
+        <td class="td-daily">${dailyCell}</td>
+        <td class="td-proj">${fmtMoney(projAfter)}</td>
+      </tr>`;
+    }
+
+    if(dayHasEntry) daysTraded++;
+    rows += dayTradeRows;
+
+    if(runBalance >= GOAL || projBalance >= GOAL){
+      rows += `<tr class="tr-goal"><td colspan="10" style="text-align:center;padding:14px">🎯 $200,000 goal reached on Day ${dayNum}!</td></tr>`;
+      goalReached = true;
+      break;
+    }
+  }
+
+  tbody.innerHTML = rows;
+
+  // Summary
+  const summary = document.getElementById('tracker-summary');
+  if(summary){
+    const currentBal = tradesEntered > 0 ? startBal + totalActualPnl : startBal;
+    const growth = Math.round((currentBal-startBal)/startBal*10000)/100;
+    summary.innerHTML = `
+      <div class="metric"><div class="label">Current balance</div><div class="value ${currentBal>=startBal?'green':'red'}">${fmtMoney(currentBal)}</div></div>
+      <div class="metric"><div class="label">Total P&L</div><div class="value ${totalActualPnl>=0?'green':'red'}">${fmtPnl(totalActualPnl)}</div></div>
+      <div class="metric"><div class="label">Growth</div><div class="value ${growth>=0?'green':'red'}">${growth>=0?'+':''}${growth}%</div></div>
+      <div class="metric"><div class="label">Days traded</div><div class="value">${daysTraded}</div></div>
+      <div class="metric"><div class="label">Trades entered</div><div class="value">${tradesEntered}</div></div>
+      <div class="metric"><div class="label">Goal progress</div><div class="value">${Math.min(100,Math.round(Math.max(0,currentBal-startBal)/(200000-startBal)*100))}%</div></div>
+    `;
+  }
+}
+
