@@ -1,4 +1,4 @@
-<!-- v20260819232439 -->
+<!-- v20260819233745 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260819232439">
+<meta name="version" content="20260819233745">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260819232439</title>
+<title>9/90 EMA Trading Dashboard v20260819233745</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1820,7 +1820,7 @@ function showPanel(name,btn){
   if(name==='calendar') renderCalendar();
   if(name==='charts') renderCharts();
   if(name==='journal'){ renderJournalCalendar(); if(jSelectedDate) loadJournalDay(jSelectedDate); }
-  if(name==='progress') initTracker();
+  if(name==='progress'){ initTracker(); }
   if(name==='risklab'){ if(typeof initRiskLab==='function') initRiskLab(); if(typeof renderAll_rl==='function') renderAll_rl(); }
 }
 
@@ -1953,7 +1953,6 @@ function filteredTrades(){
 
 loadTrades();
 
-
 function renderTracker(){
   const startBal = parseFloat(document.getElementById('tracker-start-bal').value)||650;
   const startDate = document.getElementById('tracker-start-date').value||'2026-08-24';
@@ -2085,6 +2084,10 @@ function renderTracker(){
     `;
   }
 }
+
+// Init tracker on load
+if(typeof loadTrackerData === "function") loadTrackerData();
+if(typeof initTracker === "function") initTracker();
 </script>
 </body>
 </html>
