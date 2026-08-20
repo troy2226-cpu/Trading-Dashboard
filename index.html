@@ -1,4 +1,4 @@
-<!-- v20260819235129 -->
+<!-- v20260820000201 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260819235129">
+<meta name="version" content="20260820000201">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260819235129</title>
+<title>9/90 EMA Trading Dashboard v20260820000201</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -393,6 +393,47 @@ canvas{width:100%!important}
       <div class="cal-grid" id="cal-body" style="margin-top:4px"></div>
     </div>
   </div>
+
+  <!-- CHARTS -->
+  <div id="panel-charts" class="panel">
+    <div class="card">
+      <div class="section-title">Account balance over time</div>
+      <div class="chart-filters" id="range-filters">
+        <button class="btn sm active-filter" onclick="setRange(30,this)">30 days</button>
+        <button class="btn sm" onclick="setRange(60,this)">60 days</button>
+        <button class="btn sm" onclick="setRange(90,this)">90 days</button>
+        <button class="btn sm" onclick="setRange(120,this)">120 days</button>
+        <button class="btn sm" onclick="setRange(360,this)">360 days</button>
+        <button class="btn sm" onclick="setRange(0,this)">All time</button>
+      </div>
+      <div class="chart-wrap"><canvas id="balance-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">P&L by day of week — total bar, avg label</div>
+      <div class="chart-wrap"><canvas id="dow-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Return distribution — trades by % gain/loss (10% buckets)</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="dist-chart"></canvas></div>
+      <div id="dist-table" style="margin-top:16px;overflow-x:auto"></div>
+    </div>
+    <div class="card">
+      <div class="section-title">Trade open time — P&L, wins/losses &amp; avg hold by hour</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="tod-chart"></canvas></div>
+      <div id="tod-table" style="margin-top:16px;overflow-x:auto"></div>
+    </div>
+  </div>
+
+  <!-- GOAL TRACKER -->
+  <div id="panel-progress" class="panel">
+    <div class="card" style="text-align:center;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:16px">📈</div>
+      <div class="section-title">Trading Plan Tracker</div>
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Track your daily trading plan from $650 to $200,000. 3 trades per day, 25% play size, 10% win target. Enter your actual P&L and watch the plan update forward.</p>
+      <a href="tracker.html" style="display:inline-block;padding:10px 28px;background:var(--blue-mid);color:#fff;border-radius:var(--radius);font-weight:600;text-decoration:none;font-size:14px">Open Trading Plan Tracker →</a>
+    </div>
+  </div>
+
 
   <!-- CHARTS -->
   <div id="panel-charts" class="panel">

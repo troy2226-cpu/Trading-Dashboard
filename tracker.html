@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>Trading Plan Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f4;--bg3:#efefed;
+  --text:#1a1a18;--text2:#6b6b67;--text3:#9f9f9b;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.2);
+  --radius:8px;--radius-lg:12px;
+  --green:#3B6D11;--green-bg:#EAF3DE;
+  --red:#A32D2D;--red-bg:#FCEBEB;
+  --blue:#185FA5;--blue-mid:#378ADD;--blue-bg:#E6F1FB;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#1e1e1c;--bg2:#2a2a28;--bg3:#333331;
+  --text:#f0efe8;--text2:#9f9f9b;--text3:#6b6b67;
+  --border:rgba(255,255,255,0.12);--border2:rgba(255,255,255,0.22);
+  --green:#97C459;--green-bg:#1a2e08;
+  --red:#F09595;--red-bg:#2e0f0f;
+  --blue:#85B7EB;--blue-mid:#378ADD;--blue-bg:#042C53;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;font-size:14px}
+header{background:var(--bg);border-bottom:0.5px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+header h1{font-size:15px;font-weight:600}
+.back{padding:5px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);font-size:12px;font-weight:500;text-decoration:none}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:14px}
+.metric{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 14px}
+.metric .lbl{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px}
+.metric .val{font-size:18px;font-weight:700;color:var(--text)}
+.metric .val.green{color:var(--green)}.metric .val.red{color:var(--red)}
+.controls{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:12px 16px;margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.controls label{font-size:12px;color:var(--text2);white-space:nowrap}
+.controls input{font-size:12px;padding:5px 8px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);outline:none}
+.controls input:focus{border-color:var(--blue-mid)}
+.btn{padding:6px 14px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);cursor:pointer;font-size:12px;font-weight:500}
+.btn:hover{background:var(--bg3)}
+.btn.danger{color:var(--red)}
+.table-wrap{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);overflow:auto;max-height:calc(100vh - 280px)}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:720px}
+thead th{background:var(--bg2);color:var(--text2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border-bottom:0.5px solid var(--border);text-align:center;position:sticky;top:0;z-index:2;white-space:nowrap}
+thead th.left{text-align:left}
+tbody td{padding:6px 10px;border-bottom:0.5px solid var(--border);text-align:center;color:var(--text);white-space:nowrap}
+tbody td.left{text-align:left;color:var(--text2);font-size:11px}
+tbody tr:hover td{background:var(--bg2)}
+tbody tr.day-top td{border-top:1.5px solid var(--border2)}
+tbody tr.goal-row td{background:var(--green-bg)!important;color:var(--green);font-weight:700;text-align:center}
+.proj{color:var(--text3)}
+.g{color:var(--green);font-weight:600}
+.r{color:var(--red);font-weight:600}
+.daily{font-weight:700;font-size:13px}
+ti{display:block}
+input.pnl-input{width:82px;padding:4px 6px;font-size:12px;border:0.5px solid var(--border2);border-radius:4px;background:var(--bg2);color:var(--text);text-align:center;outline:none}
+input.pnl-input:focus{border-color:var(--blue-mid)}
+input.pnl-input.has-val{background:var(--blue-bg);border-color:var(--blue-mid);font-weight:600}
+</style>
+</head>
+<body>
+<header>
+  <h1>Trading Plan Tracker — $650 → $200,000</h1>
+  <a href="index.html" class="back">← Dashboard</a>
+</header>
+<div class="container">
+  <div class="summary" id="summary"></div>
+  <div class="controls">
+    <label>Start balance: <input type="number" id="startBal" value="650" min="1" onchange="render()"></label>
+    <label>Start date: <input type="date" id="startDate" value="2026-08-24" onchange="render()"></label>
+    <button class="btn danger" onclick="resetAll()">Reset all P&L</button>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="left">Date</th>
+          <th>Day</th>
+          <th>Trade</th>
+          <th>Balance</th>
+          <th>Play (25%)</th>
+          <th>10% Win</th>
+          <th>Actual P&L</th>
+          <th>New Balance</th>
+          <th>Daily Total</th>
+          <th>Projected Bal</th>
+        </tr>
+      </thead>
+      <tbody id="tb"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+const KEY = 'tracker_v1';
+let pnlData = {};
+try{ pnlData = JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(pnlData)); }catch(e){} }
+
+function resetAll(){
+  if(!confirm('Reset all entered P&L values? Cannot be undone.')) return;
+  pnlData={};
+  save();
+  render();
+}
+
+function isWeekday(d){ var day=d.getDay(); return day!==0&&day!==6; }
+
+function getWeekdays(str, max){
+  var days=[], d=new Date(str+'T12:00:00'), count=0;
+  while(days.length<max && count<10000){
+    if(isWeekday(d)) days.push(new Date(d));
+    d=new Date(d); d.setDate(d.getDate()+1); count++;
+  }
+  return days;
+}
+
+function fmt(n){ return '$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtpnl(n){ return (n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function render(){
+  var startBal = parseFloat(document.getElementById('startBal').value)||650;
+  var startDate = document.getElementById('startDate').value||'2026-08-24';
+  var GOAL = 200000;
+  var days = getWeekdays(startDate, 3000);
+  var tb = document.getElementById('tb');
+  var html = '';
+  var bal = startBal;
+  var projBal = startBal;
+  var totalPnl = 0;
+  var daysTraded = 0;
+  var tradesEntered = 0;
+  var goalDay = 0;
+
+  for(var wi=0; wi<days.length; wi++){
+    var date = days[wi];
+    var ds = date.toISOString().slice(0,10);
+    var dlbl = (date.getMonth()+1)+'/'+(date.getDate());
+    var dayNum = wi+1;
+    var dayStartBal = bal;
+    var dayStartProj = projBal;
+    var dayPnl = 0;
+    var dayCount = 0;
+
+    for(var t=1; t<=3; t++){
+      var key = ds+'-T'+t;
+      var hasVal = pnlData[key]!==undefined && pnlData[key]!=='';
+      var actPnl = hasVal ? parseFloat(pnlData[key]) : null;
+      var balIn = bal;
+      var play = Math.round(balIn*0.25*100)/100;
+      var tenPct = Math.round(play*0.10*100)/100;
+      var projPlay = Math.round(projBal*0.25*100)/100;
+      var projWin = Math.round(projPlay*0.10*100)/100;
+      var projAfter = Math.round((projBal+projWin)*100)/100;
+
+      var newBal;
+      if(hasVal && actPnl!==null && !isNaN(actPnl)){
+        bal = Math.round((bal+actPnl)*100)/100;
+        newBal = bal;
+        dayPnl += actPnl;
+        dayCount++;
+        totalPnl += actPnl;
+        tradesEntered++;
+        projBal = projAfter;
+      } else {
+        newBal = projAfter;
+        bal = projAfter;
+        projBal = projAfter;
+      }
+
+      var isFirst = t===1;
+      var isLast = t===3;
+      var trCls = isFirst ? ' class="day-top"' : '';
+      var newBalCls = hasVal ? (actPnl>=0?'g':'r') : 'proj';
+
+      var dailyHtml = '';
+      if(isLast){
+        if(dayCount>0){
+          dailyHtml = '<span class="daily '+(dayPnl>=0?'g':'r')+'">'+fmtpnl(dayPnl)+'</span>';
+        } else {
+          var pp1=Math.round(dayStartProj*0.25*0.10*100)/100;
+          var pp2=Math.round((dayStartProj+pp1)*0.25*0.10*100)/100;
+          var pp3=Math.round((dayStartProj+pp1+pp2)*0.25*0.10*100)/100;
+          dailyHtml='<span class="proj">+'+fmt(pp1+pp2+pp3)+'</span>';
+        }
+      }
+
+      html += '<tr'+trCls+'>';
+      html += '<td class="left">'+(isFirst?dlbl:'')+'</td>';
+      html += '<td class="proj">'+(isFirst?dayNum:'')+'</td>';
+      html += '<td>'+t+'</td>';
+      html += '<td>'+fmt(balIn)+'</td>';
+      html += '<td>'+fmt(play)+'</td>';
+      html += '<td class="proj">+'+fmt(tenPct)+'</td>';
+      html += '<td><input class="pnl-input'+(hasVal?' has-val':'')+'" type="number" step="0.01" id="i-'+key+'" value="'+(hasVal?pnlData[key]:'')+'" placeholder="+'+tenPct+'" onchange="setPnl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();nextInput(\''+key+'\');}"></td>';
+      html += '<td class="'+newBalCls+'">'+fmt(newBal)+'</td>';
+      html += '<td>'+dailyHtml+'</td>';
+      html += '<td class="proj">'+fmt(projAfter)+'</td>';
+      html += '</tr>';
+    }
+
+    if(dayCount>0) daysTraded++;
+
+    if(bal >= GOAL){
+      goalDay = dayNum;
+      html += '<tr class="goal-row"><td colspan="10">🎯 Goal of $200,000 reached on Day '+dayNum+'! ('+dlbl+')</td></tr>';
+      break;
+    }
+  }
+
+  tb.innerHTML = html;
+
+  // Summary
+  var curBal = startBal + totalPnl;
+  // if no entries, curBal = startBal
+  if(tradesEntered===0) curBal = startBal;
+  var growth = totalPnl!==0 ? Math.round(totalPnl/startBal*10000)/100 : 0;
+  var goalPct = Math.min(100,Math.round(Math.max(0,curBal-startBal)/(GOAL-startBal)*100));
+  var sum = document.getElementById('summary');
+  sum.innerHTML =
+    '<div class="metric"><div class="lbl">Balance</div><div class="val '+(curBal>=startBal?'green':'red')+'">'+fmt(curBal)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Total P&L</div><div class="val '+(totalPnl>=0?'green':'red')+'">'+fmtpnl(totalPnl)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Growth</div><div class="val '+(growth>=0?'green':'red')+'">'+(growth>=0?'+':'')+growth+'%</div></div>'+
+    '<div class="metric"><div class="lbl">Days traded</div><div class="val">'+daysTraded+'</div></div>'+
+    '<div class="metric"><div class="lbl">Trades in</div><div class="val">'+tradesEntered+'</div></div>'+
+    '<div class="metric"><div class="lbl">Goal</div><div class="val">'+goalPct+'%</div></div>';
+}
+
+function setPnl(key, val){
+  if(val===''||val===null){ delete pnlData[key]; }
+  else { var n=parseFloat(val); if(!isNaN(n)) pnlData[key]=n; }
+  save();
+  render();
+  setTimeout(function(){ var el=document.getElementById('i-'+key); if(el) el.focus(); },30);
+}
+
+function nextInput(key){
+  var parts=key.split('-T'), date=parts[0], t=parseInt(parts[1]);
+  if(t<3){ var el=document.getElementById('i-'+date+'-T'+(t+1)); if(el) el.focus(); }
+}
+
+render();
+</script>
+</body>
+</html>
