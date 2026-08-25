@@ -126,8 +126,14 @@ function render(){
   var days = getWeekdays(startDate, 3000);
   var tb = document.getElementById('tb');
   var html = '';
-  var bal = startBal;
+
+  // Two separate running balances:
+  // actualBal = real balance (only moves when P&L entered, otherwise stays at last actual)
+  // projBal = projected balance (always compounds at 10% every trade)
+  var actualBal = startBal;
   var projBal = startBal;
+  var lastActualBal = startBal; // tracks last known real balance
+
   var totalPnl = 0;
   var daysTraded = 0;
   var tradesEntered = 0;
@@ -138,7 +144,7 @@ function render(){
     var ds = date.toISOString().slice(0,10);
     var dlbl = (date.getMonth()+1)+'/'+(date.getDate());
     var dayNum = wi+1;
-    var dayStartBal = bal;
+    var dayStartActual = actualBal;
     var dayStartProj = projBal;
     var dayPnl = 0;
     var dayCount = 0;
@@ -147,38 +153,54 @@ function render(){
       var key = ds+'-T'+t;
       var hasVal = pnlData[key]!==undefined && pnlData[key]!=='';
       var actPnl = hasVal ? parseFloat(pnlData[key]) : null;
-      var balIn = bal;
+
+      // Play based on actual balance if we have entries, else projected
+      var balIn = actualBal;
       var play = Math.round(balIn*0.25*100)/100;
       var tenPct = Math.round(play*0.10*100)/100;
+
+      // Projected always compounds at 10%
       var projPlay = Math.round(projBal*0.25*100)/100;
       var projWin = Math.round(projPlay*0.10*100)/100;
       var projAfter = Math.round((projBal+projWin)*100)/100;
+      projBal = projAfter;
 
-      var newBal;
+      var actualAfter;
       if(hasVal && actPnl!==null && !isNaN(actPnl)){
-        bal = Math.round((bal+actPnl)*100)/100;
-        newBal = bal;
+        actualBal = Math.round((actualBal+actPnl)*100)/100;
+        actualAfter = actualBal;
+        lastActualBal = actualBal;
         dayPnl += actPnl;
         dayCount++;
         totalPnl += actPnl;
         tradesEntered++;
-        projBal = projAfter;
       } else {
-        newBal = projAfter;
-        bal = projAfter;
-        projBal = projAfter;
+        // Not entered yet — show projected as actual balance too
+        actualBal = projAfter;
+        actualAfter = projAfter;
       }
 
       var isFirst = t===1;
       var isLast = t===3;
       var trCls = isFirst ? ' class="day-top"' : '';
-      var newBalCls = hasVal ? (actPnl>=0?'g':'r') : 'proj';
 
+      // New balance color — green/red if entered, gray if projected
+      var newBalCls, newBalStr;
+      if(hasVal && actPnl!==null && !isNaN(actPnl)){
+        newBalCls = actPnl>=0?'g':'r';
+        newBalStr = fmt(actualAfter);
+      } else {
+        newBalCls = 'proj';
+        newBalStr = fmt(actualAfter);
+      }
+
+      // Daily total
       var dailyHtml = '';
       if(isLast){
         if(dayCount>0){
           dailyHtml = '<span class="daily '+(dayPnl>=0?'g':'r')+'">'+fmtpnl(dayPnl)+'</span>';
         } else {
+          // Projected daily
           var pp1=Math.round(dayStartProj*0.25*0.10*100)/100;
           var pp2=Math.round((dayStartProj+pp1)*0.25*0.10*100)/100;
           var pp3=Math.round((dayStartProj+pp1+pp2)*0.25*0.10*100)/100;
@@ -193,8 +215,8 @@ function render(){
       html += '<td>'+fmt(balIn)+'</td>';
       html += '<td>'+fmt(play)+'</td>';
       html += '<td class="proj">+'+fmt(tenPct)+'</td>';
-      html += '<td><input class="pnl-input'+(hasVal?' has-val':'')+'" type="number" step="0.01" id="i-'+key+'" value="'+(hasVal?pnlData[key]:'')+'" placeholder="+'+tenPct+'" onchange="setPnl(\''+key+'\',this.value)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();nextInput(\''+key+'\');}"></td>';
-      html += '<td class="'+newBalCls+'">'+fmt(newBal)+'</td>';
+      html += '<td><input class="pnl-input'+(hasVal?' has-val':'')+'" type="number" step="0.01" id="i-'+key+'" value="'+(hasVal?pnlData[key]:'')+'" placeholder="+'+tenPct+'" onchange="setPnl(''+key+'',this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();nextInput(''+key+'');}"></td>';
+      html += '<td class="'+newBalCls+'">'+newBalStr+'</td>';
       html += '<td>'+dailyHtml+'</td>';
       html += '<td class="proj">'+fmt(projAfter)+'</td>';
       html += '</tr>';
@@ -202,7 +224,7 @@ function render(){
 
     if(dayCount>0) daysTraded++;
 
-    if(bal >= GOAL){
+    if(actualBal >= GOAL){
       goalDay = dayNum;
       html += '<tr class="goal-row"><td colspan="10">🎯 Goal of $200,000 reached on Day '+dayNum+'! ('+dlbl+')</td></tr>';
       break;
@@ -211,15 +233,13 @@ function render(){
 
   tb.innerHTML = html;
 
-  // Summary
-  var curBal = startBal + totalPnl;
-  // if no entries, curBal = startBal
-  if(tradesEntered===0) curBal = startBal;
-  var growth = totalPnl!==0 ? Math.round(totalPnl/startBal*10000)/100 : 0;
+  // Summary — use actual balance only if trades entered, else start
+  var curBal = tradesEntered>0 ? startBal+totalPnl : startBal;
+  var growth = Math.round(totalPnl/startBal*10000)/100;
   var goalPct = Math.min(100,Math.round(Math.max(0,curBal-startBal)/(GOAL-startBal)*100));
   var sum = document.getElementById('summary');
   sum.innerHTML =
-    '<div class="metric"><div class="lbl">Balance</div><div class="val '+(curBal>=startBal?'green':'red')+'">'+fmt(curBal)+'</div></div>'+
+    '<div class="metric"><div class="lbl">Actual balance</div><div class="val '+(curBal>=startBal?'green':'red')+'">'+fmt(curBal)+'</div></div>'+
     '<div class="metric"><div class="lbl">Total P&L</div><div class="val '+(totalPnl>=0?'green':'red')+'">'+fmtpnl(totalPnl)+'</div></div>'+
     '<div class="metric"><div class="lbl">Growth</div><div class="val '+(growth>=0?'green':'red')+'">'+(growth>=0?'+':'')+growth+'%</div></div>'+
     '<div class="metric"><div class="lbl">Days traded</div><div class="val">'+daysTraded+'</div></div>'+
