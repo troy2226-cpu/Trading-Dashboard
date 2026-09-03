@@ -1,4 +1,4 @@
-<!-- v20260820000201 -->
+<!-- v20260901215857 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260820000201">
+<meta name="version" content="20260901215857">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260820000201</title>
+<title>9/90 EMA Trading Dashboard v20260901215857</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1092,7 +1092,16 @@ function setRange(days,btn){
   chartRange=days;
   document.querySelectorAll('#range-filters .btn').forEach(b=>b.classList.remove('active-filter'));
   btn.classList.add('active-filter');
-  renderCharts();
+  // Sync dateFrom/dateTo so all charts use the same range
+  const now = new Date();
+  const today = now.toISOString().slice(0,10);
+  if(days===0){
+    dateFrom=null; dateTo=null;
+  } else {
+    const cutoff=new Date(now); cutoff.setDate(now.getDate()-days);
+    dateFrom=cutoff.toISOString().slice(0,10); dateTo=today;
+  }
+  renderAll();
 }
 
 function renderCharts(){
@@ -2129,9 +2138,7 @@ function renderTracker(){
 // Init tracker on load
 if(typeof loadTrackerData === "function") loadTrackerData();
 if(typeof initTracker === "function") initTracker();
-</script>
-</body>
-</html
+
 // ===== GOAL TRACKER SPREADSHEET =====
 const TRACKER_KEY = 'trading_tracker_v2';
 let trackerData = {};
