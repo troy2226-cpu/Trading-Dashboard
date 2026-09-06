@@ -1,4 +1,4 @@
-<!-- v20260903033216 -->
+<!-- v20260904124714 -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,9 +6,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="version" content="20260903033216">
+<meta name="version" content="20260904124714">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>9/90 EMA Trading Dashboard v20260903033216</title>
+<title>9/90 EMA Trading Dashboard v20260904124714</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -949,7 +949,7 @@ function fmtD(n){return (n>=0?'+':'-')+'$'+Math.abs(n).toLocaleString('en-US',{m
 function fmtAbs(n){return '$'+Math.abs(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function fmtPct(n){return (n>=0?'+':'')+n.toFixed(1)+'%';}
 
-function renderAll(){renderMetrics();renderTable();renderCalendar();renderProgress();renderStats();renderCharts();}
+function renderAll(){renderMetrics();renderTable();renderCalendar();try{renderProgress();}catch(e){} renderStats();renderCharts();}
 
 function renderMetrics(){
   const ft=filteredTrades();
@@ -1470,11 +1470,16 @@ function renderProgress(){
 }
 
 function renderStats(){
+  try{
   var el=document.getElementById('stats-body');
   if(!el) return;
   var ft=filteredTrades();
   var n=ft.length;
-  if(!n){el.innerHTML='<div style="color:var(--text-secondary);font-size:12px;padding:8px 0">No trades for this strategy yet</div>';return;}
+  if(!n){
+    var msg = trades.length===0 ? 'Loading trades...' : 'No trades for this filter';
+    el.innerHTML='<div style="color:var(--text-secondary);font-size:12px;padding:8px 0">'+msg+'</div>';
+    return;
+  }
   var wins=ft.filter(function(t){return t.result==='W';});
   var losses=ft.filter(function(t){return t.result==='L';});
   var totalPnl=Math.round(ft.reduce(function(s,t){return s+t.pnl;},0)*100)/100;
