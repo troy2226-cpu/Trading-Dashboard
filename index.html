@@ -1358,9 +1358,8 @@ function renderProgress(){
   const balance=START_BALANCE+totalPnl;
   const gained=Math.max(0,balance-START_BALANCE);
   const pct=Math.min(Math.round(gained/(GOAL-START_BALANCE)*100),100);
-  document.getElementById('goal-label').textContent=fmtAbs(gained)+' of $190,000 needed';
-  document.getElementById('goal-pct').textContent=pct+'%';
-  document.getElementById('goal-bar').style.width=pct+'%';
+  // goal tracker removed
+  // goal tracker removed
   const weekMap={};
   ft.forEach(t=>{
     const d=new Date(t.date+'T12:00:00');
